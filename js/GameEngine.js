@@ -28,7 +28,8 @@ GameEngine = Class.extend({
     mute: false,
     soundtrackLoaded: false,
     soundtrackPlaying: false,
-    soundtrack: null,
+    soundGame: null,
+    soundBomb: null,
 
     init: function() {
         this.size = {
@@ -69,10 +70,20 @@ GameEngine = Class.extend({
             {id: "bonuses", src: "img/bonuses.png"}
         ]);
 
-        createjs.Sound.addEventListener("fileload", this.onSoundLoaded);
-        createjs.Sound.alternateExtensions = ["mp3"];
-        createjs.Sound.registerSound("sound/bomb.ogg", "bomb");
-        createjs.Sound.registerSound("sound/game.ogg", "game");
+        // Load bomb sound
+        gGameEngine.soundBomb = new Howl({
+            src: ['sound/bomb.ogg', 'sound/bomb.mp3'],
+            volume: 0.5
+        });
+        // Prepare game sound and related variables
+        gGameEngine.soundGame = new Howl({
+            src: ['sound/game.ogg', 'sound/game.mp3'],
+            volume: 1,
+            onend: function () {
+                gGameEngine.soundGame.play();
+            }
+        });
+        gGameEngine.soundGame.once('load', this.onSoundLoaded);
 
         // Create menu
         this.menu = new Menu();
@@ -134,19 +145,17 @@ GameEngine = Class.extend({
         }
     },
 
-    onSoundLoaded: function(sound) {
-        if (sound.id == 'game') {
-            gGameEngine.soundtrackLoaded = true;
-            if (gGameEngine.playersCount > 0) {
-                gGameEngine.playSoundtrack();
-            }
+    onSoundLoaded: function() {
+        gGameEngine.soundtrackLoaded = true;
+        if (gGameEngine.playersCount > 0) {
+            gGameEngine.playSoundtrack();
         }
     },
 
     playSoundtrack: function() {
-        if (!gGameEngine.soundtrackPlaying) {
-            gGameEngine.soundtrack = createjs.Sound.play("game", "none", 0, 0, -1);
-            gGameEngine.soundtrack.setVolume(1);
+        if (! gGameEngine.soundtrackPlaying) {
+            console.log('play game sound !');
+            gGameEngine.soundGame.play();
             gGameEngine.soundtrackPlaying = true;
         }
     },
@@ -325,10 +334,10 @@ GameEngine = Class.extend({
         if (gGameEngine.menu.visible) { return; }
 
         if (status == 'win') {
-            var winText = "You won!";
+            var winText = "Ganaste!";
             if (gGameEngine.playersCount > 1) {
                 var winner = gGameEngine.getWinner();
-                winText = winner == 0 ? "Player 1 won!" : "Player 2 won!";
+                winText = winner == 0 ? "Gana el jugador 1!" : "Gana el jugador 2!";
             }
             this.menu.show([{text: winText, color: '#669900'}, {text: ' ;D', color: '#99CC00'}]);
         } else {
@@ -360,12 +369,13 @@ GameEngine = Class.extend({
     },
 
     toggleSound: function() {
+        console.log(gGameEngine.mute);
         if (gGameEngine.mute) {
             gGameEngine.mute = false;
-            gGameEngine.soundtrack.resume();
+            gGameEngine.soundGame.play();
         } else {
             gGameEngine.mute = true;
-            gGameEngine.soundtrack.pause();
+            gGameEngine.soundGame.stop();
         }
     },
 
